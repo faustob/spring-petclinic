@@ -33,7 +33,8 @@ import io.opentelemetry.api.metrics.Meter;
 @RestController
 class WebVitalsController {
 
-	private static final Meter METER = GlobalOpenTelemetry.getMeter("org.springframework.samples.petclinic.web-vitals");
+	private static final Meter METER = GlobalOpenTelemetry
+		.getMeter("org.springframework.samples.petclinic.web-vitals");
 
 	private static final DoubleHistogram LCP_HISTOGRAM = METER.histogramBuilder("web.vital.lcp")
 		.setUnit("ms")
