@@ -38,6 +38,11 @@ import jakarta.validation.Valid;
 
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.Meter;
+
 /**
  * @author Juergen Hoeller
  * @author Ken Krebs
@@ -51,6 +56,14 @@ class OwnerController {
 	private static final String VIEWS_OWNER_CREATE_OR_UPDATE_FORM = "owners/createOrUpdateOwnerForm";
 
 	private final OwnerRepository owners;
+
+	private static final Meter METER = GlobalOpenTelemetry.getMeter("org.springframework.samples.petclinic.owner");
+
+	private static final DoubleHistogram OWNER_LOOKUP_DURATION = METER
+		.histogramBuilder("petclinic.owner.lookup.duration")
+		.setUnit("s")
+		.setDescription("Duration of owner detail lookups")
+		.build();
 
 	public OwnerController(OwnerRepository owners) {
 		this.owners = owners;
@@ -165,12 +178,25 @@ class OwnerController {
 	 */
 	@GetMapping("/owners/{ownerId}")
 	public ModelAndView showOwner(@PathVariable("ownerId") int ownerId) {
-		ModelAndView mav = new ModelAndView("owners/ownerDetails");
-		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
-		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
-				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
-		mav.addObject(owner);
-		return mav;
+		long startNanos = System.nanoTime();
+		String errorType = null;
+		try {
+			ModelAndView mav = new ModelAndView("owners/ownerDetails");
+			Optional<Owner> optionalOwner = this.owners.findById(ownerId);
+			Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
+					"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
+			mav.addObject(owner);
+			return mav;
+		}
+		finally {
+			double durationSeconds = (System.nanoTime() - startNanos) / 1_000_000_000.0;
+			Attributes.AttributesBuilder attributesBuilder = Attributes.builder()
+				.put("http.route", "/owners/{ownerId}");
+			if (errorType != null) {
+				attributesBuilder.put("error.type", errorType);
+			}
+			OWNER_LOOKUP_DURATION.record(durationSeconds, attributesBuilder.build());
+		}
 	}
 
 }

@@ -20,6 +20,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.sdk.extension.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+
 /**
  * PetClinic Spring Boot Application.
  *
@@ -30,6 +33,13 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 public class PetClinicApplication {
 
 	public static void main(String[] args) {
+		try {
+			AutoConfiguredOpenTelemetrySdk.builder().setResultAsGlobal().build();
+		}
+		catch (IllegalStateException alreadyRegistered) {
+			// An OpenTelemetry agent or another initializer may have already registered
+			// the global SDK; tolerate that and continue with the existing provider.
+		}
 		SpringApplication.run(PetClinicApplication.class, args);
 	}
 
