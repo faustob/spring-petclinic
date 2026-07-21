@@ -38,6 +38,10 @@ import jakarta.validation.Valid;
 
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.Meter;
+
 /**
  * @author Juergen Hoeller
  * @author Ken Krebs
@@ -52,8 +56,15 @@ class OwnerController {
 
 	private final OwnerRepository owners;
 
+	private final LongCounter ownerViewsCounter;
+
 	public OwnerController(OwnerRepository owners) {
 		this.owners = owners;
+		Meter meter = GlobalOpenTelemetry.getMeter("org.springframework.samples.petclinic.owner");
+		this.ownerViewsCounter = meter.counterBuilder("petclinic.owner.views")
+			.setDescription("Number of times an owner detail page was successfully viewed")
+			.setUnit("{view}")
+			.build();
 	}
 
 	@InitBinder
@@ -169,6 +180,7 @@ class OwnerController {
 		Optional<Owner> optionalOwner = this.owners.findById(ownerId);
 		Owner owner = optionalOwner.orElseThrow(() -> new IllegalArgumentException(
 				"Owner not found with id: " + ownerId + ". Please ensure the ID is correct "));
+		this.ownerViewsCounter.add(1);
 		mav.addObject(owner);
 		return mav;
 	}
