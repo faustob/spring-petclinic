@@ -37,7 +37,8 @@ public class PetClinicApplication {
 		}
 		catch (IllegalStateException alreadyConfigured) {
 			// An OpenTelemetry agent or another component may have already registered
-			// the global SDK; tolerate this and continue using the existing global instance.
+			// the global SDK; tolerate this and continue using the existing global
+			// instance.
 		}
 		SpringApplication.run(PetClinicApplication.class, args);
 	}

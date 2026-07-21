@@ -66,6 +66,7 @@ public class WebVitalsController {
 	}
 
 	public record VitalReport(String name, double value, String id, String route) {
+
 	}
 
 }
